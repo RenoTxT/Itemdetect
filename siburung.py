@@ -3,27 +3,40 @@ import time
 import cv2
 from ultralytics import YOLO
 
+# Menonaktifkan peringatan GPIO
+GPIO.setwarnings(False)
+
+# Setup GPIO
 pin_laser = 22
 pin_servo = 17
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(pin_laser, GPIO.OUT)
 GPIO.setup(pin_servo, GPIO.OUT)
 
+# Load model YOLOv8
 model = YOLO('best.pt')
 
-cap = cv2.VideoCapture(0)
+# Coba untuk membuka kamera dengan indeks 0 atau 1
+cap = cv2.VideoCapture(0)  # Ubah ke 1 jika 0 tidak bekerja
+
+if not cap.isOpened():
+    print("Kamera tidak ditemukan atau tidak dapat dibuka.")
+    exit()
+    
+print("Model classes:", model.names)
+    
 
 def deteksi(frame):
     results = model(frame)
     bird_detected = False
 
     for result in results:
-        for box in results.boxes:
+        for box in result.boxes:
             class_id = int(box.cls[0])
             confidence = box.conf[0]
             label = model.names[class_id]
 
-            if label == "bird" and confidence > 0.5:
+            if label == "Bird" and confidence > 0.5:
                 bird_detected = True
                 break
 
@@ -35,6 +48,8 @@ def deteksi(frame):
         GPIO.output(pin_laser, GPIO.LOW)
         GPIO.output(pin_servo, GPIO.LOW)
         print("Burung tidak terdeteksi, laser dimatikan dan servo lanjut muter kanggg negkolkan")
+        
+    
 
 try:
     while True:
@@ -42,16 +57,14 @@ try:
         if not ret:
             break
 
-        deteksi(frame)
+        deteksi(frame)  # Lakukan deteksi burung tanpa menampilkan frame
 
-        cv2.imshow('Camera', frame)
-
-        if cv2.waitKey(1) & 0xff == ord('q'):
-            break
+        # Program berjalan tanpa menampilkan gambar
 
 except KeyboardInterrupt:
     pass
 
+# Lepaskan video capture dan bersihkan GPIO
 cap.release()
-cv2.destroyAllWindows()
 GPIO.cleanup()
+
